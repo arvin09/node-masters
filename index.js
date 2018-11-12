@@ -9,8 +9,10 @@ var http = require('http');
 var https = require('https');
 var url = require('url');
 var StringDecoder = require('string_decoder').StringDecoder;
-var config = require('./config');
+var config = require('./lib/config');
 var fs = require('fs');
+var handlers = require('./lib/route-handlers');
+var helpers = require('./lib/helpers');
 
 // Instantiate HTTP server
 var httpServer = http.createServer(function(req, res) {
@@ -59,7 +61,7 @@ var unifiedServer = function(req, res) {
     // payload are sent as streams so we need to accumlate it 
     var buffer = '';
 
-    req.on('data', function(data) { // event called when payload is present
+    req.on('data', function(data) { // event called only when payload is present
         buffer += decoder.write(data)
     });
 
@@ -75,10 +77,10 @@ var unifiedServer = function(req, res) {
             'queryStringObject': queryStringObject,
             'method': method,
             'headers': headers,
-            'payload': buffer
+            'payload': helpers.parseJsonToObject(buffer)
         }
 
-        // Route the request to the handler soecified in the router
+        // Route the request to the handler specified in the router
         chosenHandler(data, function(statusCode, payload) {
             // Use the status code called back by the handler, or deffault to 200
             statusCode = typeof(statusCode) === 'number' ? statusCode : 200;
@@ -101,20 +103,8 @@ var unifiedServer = function(req, res) {
     // Get the payload, if any 
 }
 
-//Define route handlers
-var handlers = {};
-
-// Ping handler
-handlers.ping = function(data, callback){
-  callback(200);
-}
-
-// Not found handler
-handlers.notFound = function(data, callback){
- callback(406)
-}
-
 // Define the request router
 var router = {
-    'ping': handlers.ping
+    'ping': handlers.ping,
+    'users': handlers.users
 }
